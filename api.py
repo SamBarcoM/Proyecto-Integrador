@@ -1,6 +1,7 @@
 # MongoDB
 import sys
 import pymongo
+from bson.objectid import ObjectId
 
 # Date
 import datetime
@@ -8,6 +9,8 @@ import datetime
 # Global variables
 uri = ""
 db = None
+
+# TO-DO: Error codes
 
 # Functions
 
@@ -32,16 +35,44 @@ def createTournament():
 # Function to enroll a player in X tournament
 def enroll( email, tournament_id, score ):
     global db
-    collection = db["jugador-torneo"]
-    # TO-DO: CORROBORAR QUE EL MAIL Y EL TORNEO EXISTEN
-    # TO-DO: Error codes
+
     # DUDA: Puntaje global, aplica para ranking de todos los torneos y ranking global
-    document = {
-        "email": email,
-        "torneos": [tournament_id],
-        "puntaje": score,
-    }
-    return collection.insert_one(document)
+    # TO-DO: Verificar que no se inscribiera previamente
+
+    # First, identify if tournament exists
+    collection = db["torneos"]
+    resultTournament = collection.find_one({"_id":ObjectId(tournament_id)})
+    
+    # Second, identify if player exists
+    collection = db["jugadores"]
+    resultPlayer = collection.find_one({"email":email})
+    print(collection.find_one({"email":email}))
+
+    # Both player and tournament exist
+    if resultTournament != None and resultPlayer != None:
+        print("Both exist")
+        # Identify if the player has already registered to any other tournament
+        collection = db["jugador-torneo"]
+        resultEnrollment= collection.find_one({"email":email})
+        
+        # If player has previously enrolled, updates tournaments
+        if resultEnrollment != None:
+            print("Prev enrollment")
+            return collection.update_one({"email":email}, {'$push':{'torneos':ObjectId(tournament_id)}})
+        # If not, enrolls for the first time
+        else:
+            print("First enrollment")
+            document = {
+                "email": email,
+                "torneos": [ObjectId(tournament_id)],
+                "puntaje": score,
+            }
+            return collection.insert_one(document)
+        
+    # Tournament doesn't exist  
+    else:
+        print("one doesn't exist")
+        return
 
 # Function to retrieve a random question
 def retrieveQuestion():
@@ -88,7 +119,11 @@ def updateScore( email, result, bet ):
 try:
     connect_mongo()
     print("Connection successful")
-    #print(enroll("sam@quizit.com","1",20))
+    createTournament()
+    createTournament()
+    createTournament()
+    
+    print(enroll("samb@quizit.com","5f960d8c27eddbbf601ca785",20))
     #print(updateScore("sa@quizit.com",True,1))
 except:
     print("Couldn't connect to MongoDB")
