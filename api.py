@@ -10,8 +10,6 @@ import datetime
 uri = ""
 db = None
 
-# TO-DO: Error codes
-
 # Functions
 
 # Function that allow us to connect to the Database
@@ -21,6 +19,7 @@ def connect_mongo():
     db = client.get_default_database()
 
 # DUDA: Para el POC debemos generar una función que cree un torneo cada tres días?
+# Agregar nombre torneo
 # Function to create a tournament
 def createTournament():
     global db
@@ -82,14 +81,16 @@ def retrieveQuestion():
     for question in collection.aggregate([{ '$sample': { 'size': 1 } }]):
         return question
 
+# DUDA: Ranking global para PoC
+# TO-DO: Merge answers and send right position
 # Function to retrieve global top N players
-def retrieveRanking( N ):
+def retrieveGlobalRanking( N ):
     global db
     collection = db["jugador-torneo"]
 
-# Function to retrieve X tournament top N players
-
 # Function to retrieve player's position in global ranking
+def retrieveIndividualRanking( email ):
+    return
 
 # Function to increase score
 def updateScore( email, result, bet ):
@@ -114,6 +115,12 @@ def updateScore( email, result, bet ):
         print("Player ", email," got the question wrong")
         return
     return
+
+# Function to retrieve user's tournaments
+
+# Fuction to retrieve all active tournaments
+
+# TO-DO: Delete True-False questions
 
 #connect to mongo
 try:
