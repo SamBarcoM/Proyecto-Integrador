@@ -100,14 +100,40 @@ def retrieveQuestion():
 # DUDA: Ranking global para PoC
 # TO-DO: Merge answers and send right position
 # Function to retrieve global top N players
-def retrieveGlobalRanking( N ):
+def retrieveRanking():
     client = pymongo.MongoClient(uri)
     db = client.get_default_database()
     collection = db["jugador-torneo"]
+    pipeline = [ 
+        {"$sort": {"puntaje": -1}}
+    ]
+    result = list(collection.aggregate(pipeline))
 
-# Function to retrieve player's position in global ranking
-def retrieveIndividualRanking( email ):
-    return
+    global_ranking = {}
+    for i in result:
+        global_ranking[str(i.get("email", ""))] = i.get("puntaje", 0) 
+
+    return global_ranking
+
+# Function to retrieve individual score
+def retrieveIndividualRanking(email: str = None):
+    global_ranking = retrieveRanking()
+    user_ranking = ""
+    email_response = ""
+    count = global_ranking.get(email, "")
+
+    for idx, m in enumerate(global_ranking):
+        if m == email:
+            user_ranking = idx + 1
+            email_response = m
+
+    response = {
+        "email": email_response,
+        "user_ranking": user_ranking,
+        "count": count
+    }
+    return response
+    
 
 # Function to increase score
 def updateScore( email, result, bet ):
@@ -202,6 +228,31 @@ class GET_QUESTIONS(Resource):
         return  jsonify({'error': "Value error"})
 
 api.add_resource(GET_QUESTIONS, '/getQuestions')  # Route_3
+
+
+#ENPOINT FOR FRONT GET RANKING(GET)
+class GET_RANKING(Resource):
+
+    def get(self):
+        try:
+            ranking = retrieveRanking()
+            return ranking
+        except ValueError as ex:
+             _logger.error("Value error: %s", ex)
+        return  jsonify({'error': "Value error"})
+    
+    def post(self):
+        try:
+            #For getting individual ranking we need email
+            #request_json = request.json
+            #email = request_json.get("email", "")
+            ranking = retrieveIndividualRanking("samb@quizit.com")
+            return ranking
+        except ValueError as ex:
+             _logger.error("Value error: %s", ex)
+        return  jsonify({'error': "Value error"})
+
+api.add_resource(GET_RANKING, '/getGlobalRanking')  # Route_4
 
 if __name__ == '__main__':
     app.run(port='5000')
