@@ -1,39 +1,51 @@
 # MongoDB
 import sys
 import pymongo
+import requests
 from bson.objectid import ObjectId
+import os
+import flask
+import html
+from flask import Flask, request
+from flask_restful import Resource, Api
+from flask_cors import CORS
+from dotenv import load_dotenv
+from flask_api import status
+from jsonschema import validate, ValidationError
+from flask import jsonify
 
 # Date
 import datetime
 
 # Global variables
-uri = ""
-db = None
+load_dotenv()
+app = Flask(__name__)
+api = Api(app)
+cors = CORS(app, resources={r"/*": {"origins": "*"}})
+uri = os.getenv("URI_MONGODB")
 
 # Functions
-
-# Function that allow us to connect to the Database
-def connect_mongo():
-    global db
-    client = pymongo.MongoClient(uri)
-    db = client.get_default_database()
 
 # DUDA: Para el POC debemos generar una función que cree un torneo cada tres días?
 # Agregar nombre torneo
 # Function to create a tournament
 def createTournament():
-    global db
+    client = pymongo.MongoClient(uri)
+    db = client.get_default_database()
     collection = db["torneos"]
     document = {
         "start_date": datetime.datetime.utcnow(),
         "end_date": datetime.datetime.utcnow() + datetime.timedelta(days=15),
         "isAvailable": True,
     }
-    return collection.insert_one(document)
+    #Insert document in mongodb:
+    collection.insert_one(document)
+    return document
    
 # Function to enroll a player in X tournament
 def enroll( email, tournament_id, score ):
-    global db
+    client = pymongo.MongoClient(uri)
+    db = client.get_default_database()
 
     # DUDA: Puntaje global, aplica para ranking de todos los torneos y ranking global
     # TO-DO: Verificar que no se inscribiera previamente
@@ -57,7 +69,8 @@ def enroll( email, tournament_id, score ):
         # If player has previously enrolled, updates tournaments
         if resultEnrollment != None:
             print("Prev enrollment")
-            return collection.update_one({"email":email}, {'$push':{'torneos':ObjectId(tournament_id)}})
+            collection.update_one({"email":email}, {'$push':{'torneos':ObjectId(tournament_id)}})
+            return "previously enrrolled and updated tournamnet"
         # If not, enrolls for the first time
         else:
             print("First enrollment")
@@ -66,7 +79,8 @@ def enroll( email, tournament_id, score ):
                 "torneos": [ObjectId(tournament_id)],
                 "puntaje": score,
             }
-            return collection.insert_one(document)
+            collection.insert_one(document)
+            return document
         
     # Tournament doesn't exist  
     else:
@@ -75,7 +89,9 @@ def enroll( email, tournament_id, score ):
 
 # Function to retrieve a random question
 def retrieveQuestion():
-    global db
+    client = pymongo.MongoClient(uri)
+    db = client.get_default_database()
+
     collection = db["preguntas"]
     # TO-DO: QUE LAS PREGUNTAS NO SE REPITAN
     for question in collection.aggregate([{ '$sample': { 'size': 1 } }]):
@@ -85,7 +101,8 @@ def retrieveQuestion():
 # TO-DO: Merge answers and send right position
 # Function to retrieve global top N players
 def retrieveGlobalRanking( N ):
-    global db
+    client = pymongo.MongoClient(uri)
+    db = client.get_default_database()
     collection = db["jugador-torneo"]
 
 # Function to retrieve player's position in global ranking
@@ -94,7 +111,8 @@ def retrieveIndividualRanking( email ):
 
 # Function to increase score
 def updateScore( email, result, bet ):
-    global db
+    client = pymongo.MongoClient(uri)
+    db = client.get_default_database()
     collection = db["jugador-torneo"]
     # Player got question right
     if result == True:
@@ -122,15 +140,68 @@ def updateScore( email, result, bet ):
 
 # TO-DO: Delete True-False questions
 
-#connect to mongo
-try:
-    connect_mongo()
-    print("Connection successful")
-    createTournament()
-    createTournament()
-    createTournament()
-    
-    print(enroll("samb@quizit.com","5f960d8c27eddbbf601ca785",20))
-    #print(updateScore("sa@quizit.com",True,1))
-except:
-    print("Couldn't connect to MongoDB")
+#ENPOINT FOR FRONT DATA STATISTICS (GET)
+class GET_STATISTICS(Resource):
+
+    def get(self):
+        try:
+            #With this function I will create tournament
+            create_tournament = createTournament()
+            
+            response = {
+                "_id": str(create_tournament.get("_id", None)),
+                "start_date": str(create_tournament.get("start_date", None)),
+                "end_date": str(create_tournament.get("end_date", None)),
+            }
+            return response
+        except ValueError as ex:
+             _logger.error("Value error: %s", ex)
+        return jsonify({'error': "Value error"})
+
+api.add_resource(GET_STATISTICS, '/getStatistics')  # Route_1
+
+#ENPOINT FOR FRONT ENROLL USERS (POST)
+class ENROLL(Resource):
+
+    def post(self):
+        
+        try:
+            #For enrolling we need: email, tournament_id, score
+            request_json = request.json
+            
+            #Get from request, we can change the name of the ids, depend in how its sent from front. 
+            email = request_json.get("email", "")
+            tournament_id = request_json.get("tournament_id", "")
+            score = request_json.get("score", "")
+
+            #Enrolling user 
+            enroll_user = enroll(email, tournament_id, score)
+            return enroll_user
+        except ValueError as ex:
+             _logger.error("Value error: %s", ex)
+        return  jsonify({'error': "Value error"})
+
+api.add_resource(ENROLL, '/enroll')  # Route_2
+
+#ENPOINT FOR FRONT GET QUESTION (GET)
+class GET_QUESTIONS(Resource):
+
+    def get(self):
+        try:
+            question = retrieveQuestion()
+            response = {
+                'category': question.get("category", ""),
+                'difficulty': question.get("difficulty", ""),
+                'question': question.get("question", ""),
+                "correct_answer": question.get('correct_answer', ""),
+                "incorrect_answers": question.get("incorrect_answers", "")
+            }
+            return response
+        except ValueError as ex:
+             _logger.error("Value error: %s", ex)
+        return  jsonify({'error': "Value error"})
+
+api.add_resource(GET_QUESTIONS, '/getQuestions')  # Route_3
+
+if __name__ == '__main__':
+    app.run(port='5000')
