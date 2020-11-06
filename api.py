@@ -2,6 +2,7 @@
 import sys
 import pymongo
 import requests
+import random
 from bson.objectid import ObjectId
 import os
 import flask
@@ -91,11 +92,37 @@ def enroll( email, tournament_id, score ):
 def retrieveQuestion():
     client = pymongo.MongoClient(uri)
     db = client.get_default_database()
-
+    actual_question: []
     collection = db["preguntas"]
-    # TO-DO: QUE LAS PREGUNTAS NO SE REPITAN
-    for question in collection.aggregate([{ '$sample': { 'size': 1 } }]):
-        return question
+    correct_answer = ""
+    incorrect_answers = []
+    r_number = 0
+    response = {}
+
+    actual_question = [question for question in collection.aggregate([{ '$sample': { 'size': 1 } }])]
+
+    for i in actual_question:
+        correct_answer = i.get("correct_answer", "")
+        incorrect_answers = i.get("incorrect_answers", "")
+        if correct_answer != "" or incorrect_answers != []:
+            response = {
+                "_id": i.get("_id", ""), 
+                "category": i.get("category", ""), 
+                "difficulty": i.get("difficulty", ""), 
+                "question": i.get("question", ""),
+                "correct_answer": "",
+                "possible_answers": "",
+            }
+    
+    incorrect_answers.append(correct_answer)
+    random.shuffle(incorrect_answers)
+
+    for i, j in enumerate(incorrect_answers):
+        if j == correct_answer:
+            correct_answer = i
+
+    response.update(correct_answer = correct_answer, possible_answers = incorrect_answers)
+    return response
 
 # DUDA: Ranking global para PoC
 # TO-DO: Merge answers and send right position
@@ -215,14 +242,16 @@ class GET_QUESTIONS(Resource):
     def get(self):
         try:
             question = retrieveQuestion()
+            
             response = {
                 'category': question.get("category", ""),
                 'difficulty': question.get("difficulty", ""),
                 'question': question.get("question", ""),
-                "correct_answer": question.get('correct_answer', ""),
-                "incorrect_answers": question.get("incorrect_answers", "")
+                "correct_answer": question.get('correct_answer', 0),
+                "possible_answers": question.get("possible_answers", "")
             }
-            return response
+
+            return response 
         except ValueError as ex:
              _logger.error("Value error: %s", ex)
         return  jsonify({'error': "Value error"})
