@@ -18,6 +18,10 @@ from flask import jsonify
 # Date
 import datetime
 
+# JSON
+import json
+from bson import json_util
+
 # Global variables
 load_dotenv()
 app = Flask(__name__)
@@ -25,10 +29,12 @@ api = Api(app)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
 uri = os.getenv("URI_MONGODB")
 
+# Dudas
+## Persistencia de email entre pantallas
+
 # Functions
 
-# DUDA: Para el POC debemos generar una función que cree un torneo cada tres días?
-# Agregar nombre torneo
+# TO-DO Agregar nombre torneo
 # Function to create a tournament
 def createTournament():
     client = pymongo.MongoClient(uri)
@@ -71,7 +77,7 @@ def enroll( email, tournament_id, score ):
         if resultEnrollment != None:
             print("Prev enrollment")
             collection.update_one({"email":email}, {'$push':{'torneos':ObjectId(tournament_id)}})
-            return "previously enrrolled and updated tournamnet"
+            return
         # If not, enrolls for the first time
         else:
             print("First enrollment")
@@ -81,9 +87,9 @@ def enroll( email, tournament_id, score ):
                 "puntaje": score,
             }
             collection.insert_one(document)
-            return document
+            return parse_json(document)
         
-    # Tournament doesn't exist  
+    # Player doesn't exist
     else:
         print("one doesn't exist")
         return
@@ -124,8 +130,6 @@ def retrieveQuestion():
     response.update(correct_answer = correct_answer, possible_answers = incorrect_answers)
     return response
 
-# DUDA: Ranking global para PoC
-# TO-DO: Merge answers and send right position
 # Function to retrieve global top N players
 def retrieveRanking():
     client = pymongo.MongoClient(uri)
@@ -161,7 +165,6 @@ def retrieveIndividualRanking(email: str = None):
     }
     return response
     
-
 # Function to increase score
 def updateScore( email, result, bet ):
     client = pymongo.MongoClient(uri)
@@ -187,11 +190,78 @@ def updateScore( email, result, bet ):
         return
     return
 
+# Function to validate LogIn with email
+def validateLogIn( email, password ):
+    # Status codes
+    # 200: Login Success
+    # 401: Wrong password
+    # 402: Email doesn't exist
+
+    client = pymongo.MongoClient(uri)
+    db = client.get_default_database()
+    collection = db["jugadores"]
+
+    if email.find("@") == -1:
+        playerData = collection.find_one({ "username": email })
+    else:
+        playerData = collection.find_one({ "email": email })
+
+    # Email not found
+    if playerData is None:
+        status = 402
+        message = "Player's email is wrong"
+    else:
+        if playerData["password"] == password:
+            status = 200
+            message = "Login successful"
+        elif playerData["password"] != password:
+            status = 401
+            message = "Password is wrong"
+    
+    result = {
+        "status":status,
+        "message": message
+    }
+
+    return result
+
 # Function to retrieve user's tournaments
+def retrievePlayerTournaments( email ):
+    client = pymongo.MongoClient(uri)
+    db = client.get_default_database()
+    collection = db["jugador-torneo"]
+    response = {}
+    response["tournaments"] = []
+    # Get list of tournament_id's 
+    playerData = collection.find_one({ "email": email }, { "torneos": 1})
+    print(playerData)
+    # Build JSON with data from each tournament if isAvailable is true
+    collection = db["torneos"]
+    for tournament_id in playerData["torneos"]:
+        tournament = collection.find_one({ "_id": tournament_id })
+        if tournament["isAvailable"] == True:
+            response["tournaments"].append(tournament)
+
+    return parse_json(response)
 
 # Fuction to retrieve all active tournaments
+def retrieveAllTournaments():
+    client = pymongo.MongoClient(uri)
+    db = client.get_default_database()
+    collection = db["torneos"]
+    response = {}
+    response["tournaments"] = []
+    
+    # Build JSON with data from each tournament if isAvailable is true
+    tournaments = collection.find( )
+    for tournament in tournaments:
+        if tournament["isAvailable"] == True:
+            response["tournaments"].append(tournament)
 
-# TO-DO: Delete True-False questions
+    return parse_json(response)
+
+def parse_json(data):
+    return json.loads(json_util.dumps(data))
 
 #ENPOINT FOR FRONT DATA STATISTICS (GET)
 class GET_STATISTICS(Resource):
@@ -258,7 +328,6 @@ class GET_QUESTIONS(Resource):
 
 api.add_resource(GET_QUESTIONS, '/getQuestions')  # Route_3
 
-
 #ENPOINT FOR FRONT GET RANKING(GET)
 class GET_RANKING(Resource):
 
@@ -273,9 +342,9 @@ class GET_RANKING(Resource):
     def post(self):
         try:
             #For getting individual ranking we need email
-            #request_json = request.json
-            #email = request_json.get("email", "")
-            ranking = retrieveIndividualRanking("samb@quizit.com")
+            request_json = request.json
+            email = request_json.get("email", "")
+            ranking = retrieveIndividualRanking(email)
             return ranking
         except ValueError as ex:
              _logger.error("Value error: %s", ex)
@@ -283,5 +352,43 @@ class GET_RANKING(Resource):
 
 api.add_resource(GET_RANKING, '/getGlobalRanking')  # Route_4
 
+#ENDPOINT FOR FRONT VALIDATE LOGIN (POST)
+class LOGIN(Resource):
+    def post(self):
+        try:
+            #For login we use email or username
+            request_json = request.json
+            email = request_json.get("email", "")
+            password = request_json.get("password", "")
+            response = validateLogIn(email,password)
+            return response
+        except ValueError as ex:
+             _logger.error("Value error: %s", ex)
+        return  jsonify({'error': "Value error"})
+
+api.add_resource(LOGIN, '/login')  # Route_5
+
+# ENDPOINT FOR FRONT GET TOURNAMENTS (POST)
+class GET_TOURNAMENTS(Resource):
+    def post(self):
+        try:
+            #For login we use email or username
+            request_json = request.json
+            # If request contains email, returns player tournaments
+            try:
+                email = request_json.get("email", "")
+                response = retrievePlayerTournaments(email)
+            # If request doesn't ccontain email returns all tournaments
+            except:
+                response = retrieveAllTournaments()
+            return response
+        except ValueError as ex:
+             _logger.error("Value error: %s", ex)
+        return  jsonify({'error': "Value error"})
+
+api.add_resource(GET_TOURNAMENTS, '/getTournaments')  # Route_6
+
+
 if __name__ == '__main__':
     app.run(port='5000')
+
