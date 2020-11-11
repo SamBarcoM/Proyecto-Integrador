@@ -352,6 +352,24 @@ class GET_RANKING(Resource):
 
 api.add_resource(GET_RANKING, '/getGlobalRanking')  # Route_4
 
+#ENDPOINT FOR FRONT TO UPDATE SCORE (POST)
+class UPDATE_SCORE(Resource):
+    def post(self):
+        try:
+            #For getting individual ranking we need email
+            request_json = request.json
+            email = request_json.get("email", "")
+            result = request_json.get("result", "")
+            bet = request_json.get("bet", "")
+            print(email,result,bet)
+            ranking = updateScore(email, result, bet)
+            return ranking
+        except ValueError as ex:
+             _logger.error("Value error: %s", ex)
+        return  jsonify({'error': "Value error"})
+
+api.add_resource(UPDATE_SCORE, '/updateScore')  # Route_4
+
 #ENDPOINT FOR FRONT VALIDATE LOGIN (POST)
 class LOGIN(Resource):
     def post(self):
@@ -366,7 +384,7 @@ class LOGIN(Resource):
              _logger.error("Value error: %s", ex)
         return  jsonify({'error': "Value error"})
 
-api.add_resource(LOGIN, '/login')  # Route_5
+api.add_resource(LOGIN, '/login')  # Route_6
 
 # ENDPOINT FOR FRONT GET TOURNAMENTS (POST)
 class GET_TOURNAMENTS(Resource):
@@ -386,7 +404,7 @@ class GET_TOURNAMENTS(Resource):
              _logger.error("Value error: %s", ex)
         return  jsonify({'error': "Value error"})
 
-api.add_resource(GET_TOURNAMENTS, '/getTournaments')  # Route_6
+api.add_resource(GET_TOURNAMENTS, '/getTournaments')  # Route_7
 
 
 if __name__ == '__main__':
