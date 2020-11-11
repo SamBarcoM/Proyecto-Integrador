@@ -1,4 +1,4 @@
-@import "node_modules/bootstrap/scss/bootstrap";
+
 
 html,
 body {
@@ -38,8 +38,9 @@ body{
     display: block;
     text-align: center;
     align-items: center;
-    height: 40%;
+    height: 50%;
     margin: 0 auto;
+    margin-bottom: 15px;
 }
 .progress{
     margin: 0 auto;
@@ -64,10 +65,24 @@ body{
 }
 
 .btn{
-    background-color: dimgrey;
+    background-color: dimgray;
     border-radius: 12px;
     border: none;
     color: whitesmoke;
+    margin: 0 auto;
+    width: 80%;
+    
+}
+
+.bet_div{
+    width: 75px;
+    height: 75px;
+    margin-left: 60px;
+}
+
+.bet_icon{
+    width: 100%;
+    height: auto;
 }
 
 .form-signin {
