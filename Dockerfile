@@ -1,11 +1,12 @@
 FROM python:3
 
 RUN pip install --upgrade pip 
-RUN pip install -r requirements.txt
 
 WORKDIR /app
 COPY . /app
 
-CMD ["python", "api.py"]
+RUN pip install -r requirements.txt
+
+CMD ["python", "api/api.py"]
 #EXPOSE 8080
 #ENTRYPOINT [ "/app/bootstrap.sh" ]
