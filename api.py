@@ -171,7 +171,8 @@ def updateScore( email, result, bet ):
     db = client.get_default_database()
     collection = db["jugador-torneo"]
     # Player got question right
-    if result == True:
+    score = 0
+    if result == "True":
         print("Player ", email," got the question right")
         if bet == 0:
             score = 2
@@ -180,15 +181,13 @@ def updateScore( email, result, bet ):
         elif bet == 2:
             score = 6
         else:
-            print("ERROR: Bet value not valid")
-            return
+            return "ERROR: Bet value not valid"
         # DUDA: Score global
-        collection.update_one({"email":email},{'$inc':{"puntaje":score}})        
+        collection.update_one({"email":email},{"$inc": {"puntaje": score}})        
     # Player got question wrong
     else:
-        print("Player ", email," got the question wrong")
-        return
-    return
+        return "Player got the question wrong"
+    return "Increased Points"
 
 # Function to validate LogIn with email
 def validateLogIn( email, password ):
@@ -234,7 +233,6 @@ def retrievePlayerTournaments( email ):
     response["tournaments"] = []
     # Get list of tournament_id's 
     playerData = collection.find_one({ "email": email }, { "torneos": 1})
-    print(playerData)
     # Build JSON with data from each tournament if isAvailable is true
     collection = db["torneos"]
     for tournament_id in playerData["torneos"]:
@@ -361,7 +359,6 @@ class UPDATE_SCORE(Resource):
             email = request_json.get("email", "")
             result = request_json.get("result", "")
             bet = request_json.get("bet", "")
-            print(email,result,bet)
             ranking = updateScore(email, result, bet)
             return ranking
         except ValueError as ex:
