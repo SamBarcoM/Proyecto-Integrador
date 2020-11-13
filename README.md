@@ -30,8 +30,6 @@ And run
 
 *Note: You need to accomplish the requirements before running the environment*
 
-The project is configured to run with [Flask cli](http://flask.pocoo.org/docs/1.0/cli/)
-
 The right way to run the api is:
 
 1. Run `pip install -r requirements.txt` in your virtual environment
