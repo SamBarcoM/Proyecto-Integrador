@@ -183,11 +183,21 @@ def updateScore( email, result, bet ):
         else:
             return "ERROR: Bet value not valid"
         # DUDA: Score global
-        collection.update_one({"email":email},{"$inc": {"puntaje": score}})        
+        collection.update_one({"email":email},{"$inc": {"puntaje": score}})      
+        return "Increased Points"  
     # Player got question wrong
     else:
-        return "Player got the question wrong"
-    return "Increased Points"
+        if bet == 0:
+            score = -2
+        elif bet == 1:
+            score = -4
+        elif bet == 2:
+            score = -6
+        else:
+            return "ERROR: Bet value not valid"
+        collection.update_one({"email":email},{"$inc": {"puntaje": score}}) 
+        return "Decreased Points"       
+    
 
 # Function to validate LogIn with email
 def validateLogIn( email, password ):
@@ -195,7 +205,6 @@ def validateLogIn( email, password ):
     # 200: Login Success
     # 401: Wrong password
     # 402: Email doesn't exist
-
     client = pymongo.MongoClient(uri)
     db = client.get_default_database()
     collection = db["jugadores"]
