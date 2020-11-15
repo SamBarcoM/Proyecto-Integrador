@@ -173,7 +173,7 @@ def updateScore( email, result, bet ):
     # Player got question right
     score = 0
     if result == "True":
-        print("Player ", email," got the question right")
+        #print("Player ", email," got the question right")
         if bet == 0:
             score = 2
         elif bet == 1:
@@ -187,18 +187,8 @@ def updateScore( email, result, bet ):
         return "Increased Points"  
     # Player got question wrong
     else:
-        if bet == 0:
-            score = -2
-        elif bet == 1:
-            score = -4
-        elif bet == 2:
-            score = -6
-        else:
-            return "ERROR: Bet value not valid"
-        collection.update_one({"email":email},{"$inc": {"puntaje": score}}) 
         return "Decreased Points"       
     
-
 # Function to validate LogIn with email
 def validateLogIn( email, password ):
     # Status codes
