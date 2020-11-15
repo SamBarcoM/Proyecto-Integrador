@@ -170,10 +170,11 @@ def updateScore( email, result, bet ):
     client = pymongo.MongoClient(uri)
     db = client.get_default_database()
     collection = db["jugador-torneo"]
+
     # Player got question right
     score = 0
     if result == "True":
-        #print("Player ", email," got the question right")
+        print("Player ", email," got the question right")
         if bet == 0:
             score = 2
         elif bet == 1:
@@ -187,6 +188,32 @@ def updateScore( email, result, bet ):
         return "Increased Points"  
     # Player got question wrong
     else:
+        print("Player ", email," got the question wrong")
+        puntaje = 0
+        
+        if bet == 0:
+            score = -2
+        elif bet == 1:
+            score = -4
+        elif bet == 2:
+            score = -6
+        else:
+            return "ERROR: Bet value not valid"
+        # DUDA: Score global
+
+        collection.update_one({"email":email},{"$inc": {"puntaje": score}})     
+
+        pipeline = [ 
+            {"$match": {"email": email}}
+        ]
+        result = list(collection.aggregate(pipeline))
+        
+        for i in result:
+            puntaje = i.get("puntaje", 0)
+        
+        if puntaje <= 0:
+            collection.update_one({"email":email},{"$set": {"puntaje": 0}}) 
+
         return "Decreased Points"       
     
 # Function to validate LogIn with email
