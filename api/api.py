@@ -402,7 +402,17 @@ class GET_TOURNAMENTS(Resource):
 
 api.add_resource(GET_TOURNAMENTS, '/getTournaments')  # Route_7
 
+class HEALTH(Resource):
 
+    def get(self):
+        try:
+            response="OK"
+            return response
+        except ValueError as ex:
+             _logger.error("Value error: %s", ex)
+        return jsonify({'error': "Value error"})
+
+api.add_resource(HEALTH, '/') 
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0")
 
