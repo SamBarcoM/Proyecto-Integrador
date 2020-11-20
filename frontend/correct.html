@@ -1,0 +1,110 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="/img/top.ico">
+
+    <title>Quiz.it</title>
+
+      
+    <!-- Bootstrap core CSS -->
+    <link href="vendor/bootstrap-4.3.1/css/bootstrap.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+     <link  type="text/css" rel="stylesheet" href="css/correct.css"> 
+      
+      
+      <!-- jquery -->
+
+      <link rel="stylesheet" href="//apps.bdimg.com/libs/jqueryui/1.10.4/css/jquery-ui.min.css">
+  <script src="//apps.bdimg.com/libs/jquery/1.10.2/jquery.min.js"></script>
+  <script src="//apps.bdimg.com/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
+      
+  </head>
+
+  <body class="text-center" onload="start()">
+      
+      
+      
+     <nav class="navbar navbar-expand-lg navbar-light bg-light">
+         <a href="dashboard.html"><p>&lt Back</p></a> 
+         <p id="quizName">Quiz 1</p>
+         <p id="pts"></p>
+
+    </nav>
+      
+      <div id="question-div" class="bg-custom5 question-div">
+          <img class="mb-4" src="img/happy_pinapple.png" alt="" width="256" height="256">
+          <h4 class="h4 mb-4 font-weight-normal" id="question">You're right!</h4>
+          <h5 class="h5 mb-5 font-weight-normal" id="question">Keep racking those points</h5>
+      
+      </div>
+    
+      
+      <script src="vendor/jquery/jquery-3.5.1.min.js"></script>
+      <script src="vendor/bootstrap-4.3.1/js/bootstrap.min.js"></script>
+      
+      <p class="mt-5 mb-3 text-muted">&copy; COVID-Games 2020</p>
+      
+      <script>
+          
+    var correct;
+    var email = "jorge@quizit.com";      
+          
+    
+    //Triggered by page load
+    function start(){
+        
+        //loads points
+        getScore('http://35.202.232.216/getGlobalRanking', { "email": email })
+            .then(data => {
+            points = data.count;
+            console.log(points); // JSON data parsed by `data.json()` call
+            document.getElementById("pts").innerHTML = points +" pts" ;
+        });
+        
+        //Goes back to main game
+        setTimeout(backToGame, 2000);
+        
+    }      
+          
+    function backToGame(){
+        
+        location.replace("game.html");
+    }
+     
+    //POST REQUEST      
+    async function getScore(url = '', data = {}){
+           const response = await fetch(url, {
+            method: 'POST', // *GET, POST, PUT, DELETE, etc.
+            mode: 'cors', // no-cors, *cors, same-origin
+            cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+            credentials: 'same-origin', // include, *same-origin, omit
+            headers: {
+              'Content-Type': 'application/json'
+              // 'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            redirect: 'follow', // manual, *follow, error
+            referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+            body: JSON.stringify(data) // body data type must match "Content-Type" header
+          });
+
+        return response.json(); // parses JSON response into native JavaScript objects
+
+    }        
+          
+    
+          
+   
+</script>    
+  </body>
+    
+
+
+    
+    
+</html>
